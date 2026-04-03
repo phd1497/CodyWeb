@@ -4,19 +4,19 @@ import type { Product } from '../../types/product';
 
 interface ProductCardProps {
   product: Product;
-  onViewDetail: (product: Product) => void;
+  onViewDetail: (productId: string) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onViewDetail }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleClick = useCallback(() => {
-    onViewDetail(product);
+    onViewDetail(product.id);
   }, [product, onViewDetail]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') onViewDetail(product);
+      if (e.key === 'Enter') onViewDetail(product.id);
     },
     [product, onViewDetail],
   );
@@ -57,7 +57,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onViewDetail }) => {
             className="product-view-btn"
             onClick={(e) => {
               e.stopPropagation();
-              onViewDetail(product);
+              onViewDetail(product.id);
             }}
             id={`view-btn-${product.id}`}
           >

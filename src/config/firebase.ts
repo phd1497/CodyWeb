@@ -1,21 +1,27 @@
-import { initializeApp } from 'firebase/app';
+import { FirebaseOptions, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAvDMFNyxvusMZbJzKEDxWobt1tl91KUS0",
-  authDomain: "cody-web-60f8f.firebaseapp.com",
-  projectId: "cody-web-60f8f",
-  storageBucket: "cody-web-60f8f.firebasestorage.app",
-  messagingSenderId: "622972945457",
-  appId: "1:622972945457:web:b2170e5b8b7cc7066c0110",
-  measurementId: "G-F8CVBDK9N5",
+const firebaseConfig: FirebaseOptions = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingKeys.length > 0 && process.env.NODE_ENV !== 'test') {
+  // eslint-disable-next-line no-console
+  console.warn(`Missing Firebase config keys: ${missingKeys.join(', ')}`);
+}
+
 const app = initializeApp(firebaseConfig);
 
-// Initialize services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
