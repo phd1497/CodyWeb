@@ -4,7 +4,7 @@ import type { Product } from '../../types/product';
 
 interface ProductGridProps {
   products: Product[];
-  onViewDetail: (product: Product) => void;
+  onViewDetail: (productId: string) => void;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ products, onViewDetail }) => {

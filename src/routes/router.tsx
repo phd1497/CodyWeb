@@ -1,127 +1,63 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { AuthProvider } from '../contexts/AuthContext';
-
-/* ── Layouts ── */
-import AdminLayout from '../layouts/AdminLayout';
+import AppProviders from '../app/providers/AppProviders';
 import UserLayout from '../layouts/UserLayout';
-
-/* ── Auth Pages ── */
-import AdminLoginPage from '../pages/admin/AdminLoginPage';
-import UserLoginPage from '../pages/user/UserLoginPage';
-import UserSignupPage from '../pages/user/UserSignupPage';
-
-/* ── Admin Pages ── */
-import DashboardPage from '../pages/admin/DashboardPage';
-import UsersPage from '../pages/admin/UsersPage';
-import AdminManagementPage from '../pages/admin/AdminManagementPage';
-
-/* ── User Pages ── */
-import HomePage from '../pages/user/HomePage';
-
-/* ── Guards ── */
+import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
+import PageLoader from '../shared/components/PageLoader';
 
-/* ── Root Layout that provides AuthContext ── */
-const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <AuthProvider>{children}</AuthProvider>;
-};
+const AdminLoginPage = lazy(() => import('../pages/admin/AdminLoginPage'));
+const UserLoginPage = lazy(() => import('../pages/user/UserLoginPage'));
+const UserSignupPage = lazy(() => import('../pages/user/UserSignupPage'));
+const DashboardPage = lazy(() => import('../pages/admin/DashboardPage'));
+const UsersPage = lazy(() => import('../pages/admin/UsersPage'));
+const AdminManagementPage = lazy(() => import('../pages/admin/AdminManagementPage'));
+const StoreHomePage = lazy(() => import('../modules/store/pages/HomePage'));
+const ProductDetailPage = lazy(() => import('../modules/store/pages/ProductDetailPage'));
+
+const withSuspense = (node: React.ReactNode) => <Suspense fallback={<PageLoader />}>{node}</Suspense>;
+
+const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AppProviders>{children}</AppProviders>
+);
 
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <RootLayout><Navigate to="/user/login" replace /></RootLayout>,
-  },
-
-  /* ── Auth (public) ── */
-  {
-    path: '/admin/login',
-    element: <RootLayout><AdminLoginPage /></RootLayout>,
-  },
-  {
-    path: '/user/login',
-    element: <RootLayout><UserLoginPage /></RootLayout>,
-  },
-  {
-    path: '/user/signup',
-    element: <RootLayout><UserSignupPage /></RootLayout>,
-  },
-
-  /* ── User Pages (protected) ── */
+  { path: '/', element: <RootLayout><Navigate to="/user/login" replace /></RootLayout> },
+  { path: '/admin/login', element: <RootLayout>{withSuspense(<AdminLoginPage />)}</RootLayout> },
+  { path: '/user/login', element: <RootLayout>{withSuspense(<UserLoginPage />)}</RootLayout> },
+  { path: '/user/signup', element: <RootLayout>{withSuspense(<UserSignupPage />)}</RootLayout> },
   {
     path: '/user',
     element: (
       <RootLayout>
-        <ProtectedRoute redirectTo="/user/login">
+        <ProtectedRoute redirectTo="/user/login" requireRole="user">
           <UserLayout />
         </ProtectedRoute>
       </RootLayout>
     ),
     children: [
-      {
-        index: true,
-        element: <Navigate to="/user/home" replace />,
-      },
-      {
-        path: 'home',
-        element: <HomePage />,
-      },
+      { index: true, element: <Navigate to="/user/home" replace /> },
+      { path: 'home', element: withSuspense(<StoreHomePage />) },
+      { path: 'products/:productId', element: withSuspense(<ProductDetailPage />) },
     ],
   },
-
-  /* ── Admin Dashboard (protected) ── */
   {
     path: '/admin',
     element: (
       <RootLayout>
-        <ProtectedRoute redirectTo="/admin/login">
+        <ProtectedRoute redirectTo="/admin/login" requireRole="admin">
           <AdminLayout />
         </ProtectedRoute>
       </RootLayout>
     ),
     children: [
-      {
-        index: true,
-        element: <Navigate to="/admin/dashboard" replace />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
-      },
-      {
-        path: 'users',
-        element: <UsersPage />,
-      },
-      {
-        path: 'management',
-        element: <AdminManagementPage />,
-      },
-      {
-        path: 'settings',
-        element: (
-          <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
-            <h1 style={{
-              fontSize: 'var(--fs-2xl)',
-              fontWeight: 'var(--fw-bold)',
-              color: 'var(--text-primary)',
-              marginBottom: 'var(--space-2)',
-            }}>
-              Settings
-            </h1>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--fs-sm)' }}>
-              Settings page coming soon...
-            </p>
-          </div>
-        ),
-      },
+      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { path: 'dashboard', element: withSuspense(<DashboardPage />) },
+      { path: 'users', element: withSuspense(<UsersPage />) },
+      { path: 'management', element: withSuspense(<AdminManagementPage />) },
     ],
   },
-
-  /* ── Catch-all ── */
-  {
-    path: '*',
-    element: <RootLayout><Navigate to="/user/login" replace /></RootLayout>,
-  },
+  { path: '*', element: <RootLayout><Navigate to="/user/login" replace /></RootLayout> },
 ]);
 
 export default router;

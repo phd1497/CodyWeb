@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { onAuthChanged, logOut } from '../services/authService';
 import { getUserProfile } from '../services/firestoreService';
@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthState>({
   firebaseUser: null,
   profile: null,
   loading: true,
-  signOut: async () => {},
+  signOut: async () => undefined,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -29,31 +29,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthChanged(async (user) => {
       setFirebaseUser(user);
 
-      if (user) {
-        try {
-          const prof = await getUserProfile(user.uid);
-          setProfile(prof);
-        } catch {
-          setProfile(null);
-        }
-      } else {
+      if (!user) {
         setProfile(null);
+        setLoading(false);
+        return;
       }
 
-      setLoading(false);
+      try {
+        const userProfile = await getUserProfile(user.uid);
+        setProfile(userProfile);
+      } catch {
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
     });
 
     return unsubscribe;
   }, []);
 
-  const handleSignOut = async () => {
+  const signOut = useCallback(async () => {
     await logOut();
     setProfile(null);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ firebaseUser, profile, loading, signOut: handleSignOut }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ firebaseUser, profile, loading, signOut }),
+    [firebaseUser, profile, loading, signOut],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
