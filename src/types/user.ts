@@ -1,17 +1,16 @@
-export interface User {
-  id: number;
+/* ── Firestore User Profile ── */
+export interface UserProfile {
+  uid: string;
   name: string;
   email: string;
-  role: string;
-  phone: string;
-  address: string;
-  avatar?: string;
+  role: 'user';
   status: 'Active' | 'Inactive';
-  joinedDate: string;
+  createdAt: string;
 }
 
-export interface Admin {
-  id: number;
+/* ── Firestore Admin Profile ── */
+export interface AdminProfile {
+  uid: string;
   name: string;
   email: string;
   role: 'AdminX' | 'Admin' | 'Moderator';

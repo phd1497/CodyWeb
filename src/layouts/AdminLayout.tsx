@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   RiDashboardLine,
   RiGroupLine,
@@ -12,13 +12,28 @@ import {
   RiLogoutBoxRLine,
   RiAdminLine,
 } from 'react-icons/ri';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/AdminLayout.css';
 
 const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const closeSidebar = () => setSidebarOpen(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/admin/login');
+  };
+
+  const getInitials = (name: string) =>
+    name.split(' ').map((n) => n[0]).join('').toUpperCase();
+
+  const adminName = profile?.name || 'Admin';
+  const adminRole = profile?.role || 'Admin';
+  const initials = getInitials(adminName);
 
   return (
     <div className="admin-layout">
@@ -42,45 +57,21 @@ const AdminLayout: React.FC = () => {
 
         <nav className="sidebar-nav">
           <div className="nav-section-title">Main Menu</div>
-          <NavLink
-            to="/admin/dashboard"
-            className={({ isActive }) =>
-              `nav-item-link ${isActive ? 'active' : ''}`
-            }
-            onClick={closeSidebar}
-          >
+          <NavLink to="/admin/dashboard" className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
             <span className="nav-item-icon"><RiDashboardLine /></span>
             Dashboard
           </NavLink>
-          <NavLink
-            to="/admin/users"
-            className={({ isActive }) =>
-              `nav-item-link ${isActive ? 'active' : ''}`
-            }
-            onClick={closeSidebar}
-          >
+          <NavLink to="/admin/users" className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
             <span className="nav-item-icon"><RiGroupLine /></span>
             Users
           </NavLink>
-          <NavLink
-            to="/admin/management"
-            className={({ isActive }) =>
-              `nav-item-link ${isActive ? 'active' : ''}`
-            }
-            onClick={closeSidebar}
-          >
+          <NavLink to="/admin/management" className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
             <span className="nav-item-icon"><RiAdminLine /></span>
             Admin Management
           </NavLink>
 
           <div className="nav-section-title">System</div>
-          <NavLink
-            to="/admin/settings"
-            className={({ isActive }) =>
-              `nav-item-link ${isActive ? 'active' : ''}`
-            }
-            onClick={closeSidebar}
-          >
+          <NavLink to="/admin/settings" className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
             <span className="nav-item-icon"><RiSettings4Line /></span>
             Settings
           </NavLink>
@@ -88,12 +79,18 @@ const AdminLayout: React.FC = () => {
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="sidebar-user-avatar">CA</div>
+            <div className="sidebar-user-avatar">{initials}</div>
             <div className="sidebar-user-info">
-              <div className="sidebar-user-name">Cody Admin</div>
-              <div className="sidebar-user-role">Super Admin</div>
+              <div className="sidebar-user-name">{adminName}</div>
+              <div className="sidebar-user-role">{adminRole}</div>
             </div>
-            <RiLogoutBoxRLine style={{ color: 'var(--text-tertiary)', fontSize: '1.125rem' }} />
+            <button
+              onClick={handleLogout}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              title="Logout"
+            >
+              <RiLogoutBoxRLine style={{ color: 'var(--text-tertiary)', fontSize: '1.125rem' }} />
+            </button>
           </div>
         </div>
       </aside>
@@ -126,7 +123,7 @@ const AdminLayout: React.FC = () => {
             </button>
 
             <div className="header-avatar" id="header-user-avatar">
-              CA
+              {initials}
             </div>
           </div>
         </header>

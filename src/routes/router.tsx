@@ -1,42 +1,84 @@
 import React from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { AuthProvider } from '../contexts/AuthContext';
 
 /* ── Layouts ── */
 import AdminLayout from '../layouts/AdminLayout';
+import UserLayout from '../layouts/UserLayout';
 
 /* ── Auth Pages ── */
-import AdminLoginPage from '../pages/auth/AdminLoginPage';
-import UserLoginPage from '../pages/auth/UserLoginPage';
-import UserSignupPage from '../pages/auth/UserSignupPage';
+import AdminLoginPage from '../pages/admin/AdminLoginPage';
+import UserLoginPage from '../pages/user/UserLoginPage';
+import UserSignupPage from '../pages/user/UserSignupPage';
 
 /* ── Admin Pages ── */
 import DashboardPage from '../pages/admin/DashboardPage';
 import UsersPage from '../pages/admin/UsersPage';
 import AdminManagementPage from '../pages/admin/AdminManagementPage';
 
-const router = createBrowserRouter([
+/* ── User Pages ── */
+import HomePage from '../pages/user/HomePage';
 
-  /* ── Admin Auth ── */
+/* ── Guards ── */
+import ProtectedRoute from '../components/ProtectedRoute';
+
+/* ── Root Layout that provides AuthContext ── */
+const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <AuthProvider>{children}</AuthProvider>;
+};
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout><Navigate to="/user/login" replace /></RootLayout>,
+  },
+
+  /* ── Auth (public) ── */
   {
     path: '/admin/login',
-    element: <AdminLoginPage />,
+    element: <RootLayout><AdminLoginPage /></RootLayout>,
   },
-
-  /* ── User Auth ── */
   {
     path: '/user/login',
-    element: <UserLoginPage />,
+    element: <RootLayout><UserLoginPage /></RootLayout>,
   },
-
   {
     path: '/user/signup',
-    element: <UserSignupPage />,
+    element: <RootLayout><UserSignupPage /></RootLayout>,
   },
 
-  /* ── Admin Dashboard ── */
+  /* ── User Pages (protected) ── */
+  {
+    path: '/user',
+    element: (
+      <RootLayout>
+        <ProtectedRoute redirectTo="/user/login">
+          <UserLayout />
+        </ProtectedRoute>
+      </RootLayout>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/user/home" replace />,
+      },
+      {
+        path: 'home',
+        element: <HomePage />,
+      },
+    ],
+  },
+
+  /* ── Admin Dashboard (protected) ── */
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <RootLayout>
+        <ProtectedRoute redirectTo="/admin/login">
+          <AdminLayout />
+        </ProtectedRoute>
+      </RootLayout>
+    ),
     children: [
       {
         index: true,
@@ -75,14 +117,10 @@ const router = createBrowserRouter([
     ],
   },
 
-  /* ── Redirects ── */
-  {
-    path: '/',
-    element: <Navigate to="/user/login" replace />,
-  },
+  /* ── Catch-all ── */
   {
     path: '*',
-    element: <Navigate to="/user/login" replace />,
+    element: <RootLayout><Navigate to="/user/login" replace /></RootLayout>,
   },
 ]);
 

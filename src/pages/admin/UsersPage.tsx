@@ -1,35 +1,49 @@
-import React, { useState } from 'react';
-import { Table, Button } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Spinner } from 'react-bootstrap';
 import {
   RiGroupLine,
   RiUserFollowLine,
-  RiShieldUserLine,
   RiAlertLine,
   RiSearchLine,
-  RiAddLine,
+  RiFilterLine,
   RiEyeLine,
   RiDeleteBinLine,
-  RiFilterLine,
 } from 'react-icons/ri';
-import { User } from '../../types';
-import { mockUsers } from '../../assets/mockData';
+import type { UserProfile } from '../../types';
+import { getAllUsers } from '../../services/firestoreService';
 import UserDetailModal from '../../components/UserDetailModal';
 import '../../styles/Users.css';
 
 const UsersPage: React.FC = () => {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
-  const handleRowClick = (user: User) => {
-    setSelectedRowId(user.id);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await getAllUsers();
+        setUsers(data);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const handleRowClick = (user: UserProfile) => {
+    setSelectedRowId(user.uid);
     setSelectedUser(user);
     setShowModal(true);
   };
 
-  const handleViewClick = (e: React.MouseEvent, user: User) => {
+  const handleViewClick = (e: React.MouseEvent, user: UserProfile) => {
     e.stopPropagation();
-    setSelectedRowId(user.id);
+    setSelectedRowId(user.uid);
     setSelectedUser(user);
     setShowModal(true);
   };
@@ -43,24 +57,24 @@ const UsersPage: React.FC = () => {
   const getInitials = (name: string) =>
     name.split(' ').map((n) => n[0]).join('').toUpperCase();
 
-  const getAvatarGradient = (id: number) => {
+  const getAvatarGradient = (uid: string) => {
     const gradients = ['gradient-1', 'gradient-2', 'gradient-3', 'gradient-4'];
-    return gradients[(id - 1) % gradients.length];
-  };
-
-  const getRoleBadgeClass = (role: string) => {
-    switch (role.toLowerCase()) {
-      case 'admin': return 'role-badge admin';
-      case 'moderator': return 'role-badge moderator';
-      default: return 'role-badge user';
-    }
+    const hash = uid.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    return gradients[hash % gradients.length];
   };
 
   // Stats
-  const totalUsers = mockUsers.length;
-  const activeUsers = mockUsers.filter((u) => u.status === 'Active').length;
-  const adminCount = mockUsers.filter((u) => u.role === 'admin').length;
-  const inactiveUsers = mockUsers.filter((u) => u.status === 'Inactive').length;
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.status === 'Active').length;
+  const inactiveUsers = users.filter((u) => u.status === 'Inactive').length;
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-8)' }}>
+        <Spinner animation="border" style={{ color: 'var(--color-primary)' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="users-page">
@@ -75,46 +89,27 @@ const UsersPage: React.FC = () => {
             <RiFilterLine style={{ marginRight: '0.375rem' }} />
             Filter
           </Button>
-          <Button variant="primary" size="sm" id="add-user-btn">
-            <RiAddLine style={{ marginRight: '0.375rem' }} />
-            Add User
-          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon primary">
-            <RiGroupLine />
-          </div>
+          <div className="stat-icon primary"><RiGroupLine /></div>
           <div className="stat-info">
             <h4>{totalUsers}</h4>
             <p>Total Users</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon success">
-            <RiUserFollowLine />
-          </div>
+          <div className="stat-icon success"><RiUserFollowLine /></div>
           <div className="stat-info">
             <h4>{activeUsers}</h4>
             <p>Active Users</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon warning">
-            <RiShieldUserLine />
-          </div>
-          <div className="stat-info">
-            <h4>{adminCount}</h4>
-            <p>Admins</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon danger">
-            <RiAlertLine />
-          </div>
+          <div className="stat-icon danger"><RiAlertLine /></div>
           <div className="stat-info">
             <h4>{inactiveUsers}</h4>
             <p>Inactive</p>
@@ -133,88 +128,76 @@ const UsersPage: React.FC = () => {
         </div>
 
         <div className="users-table-body">
-          <Table hover id="users-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockUsers.map((user) => (
-                <tr
-                  key={`user-${user.id}`}
-                  className={selectedRowId === user.id ? 'selected-row' : ''}
-                  onClick={() => handleRowClick(user)}
-                  id={`user-row-${user.id}`}
-                >
-                  <td>
-                    <div className="user-avatar-cell">
-                      <div className={`user-avatar ${getAvatarGradient(user.id)}`}>
-                        {getInitials(user.name)}
-                      </div>
-                      <div>
-                        <div className="user-name">{user.name}</div>
-                        <div className="user-email-sub">ID: #{String(user.id).padStart(4, '0')}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
-                  <td>
-                    <span className={getRoleBadgeClass(user.role)}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="status-indicator">
-                      <span className={`status-dot ${user.status}`} />
-                      {user.status === 'Active' ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--text-tertiary)', fontSize: 'var(--fs-sm)' }}>
-                    {new Date(user.joinedDate).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                      <button
-                        className="row-action-btn view"
-                        onClick={(e) => handleViewClick(e, user)}
-                        title="View Details"
-                        id={`view-user-${user.id}`}
-                      >
-                        <RiEyeLine />
-                      </button>
-                      <button
-                        className="row-action-btn delete"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Delete User"
-                        id={`delete-user-${user.id}`}
-                      >
-                        <RiDeleteBinLine />
-                      </button>
-                    </div>
-                  </td>
+          {users.length === 0 ? (
+            <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+              No users registered yet.
+            </div>
+          ) : (
+            <Table hover id="users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr
+                    key={user.uid}
+                    className={selectedRowId === user.uid ? 'selected-row' : ''}
+                    onClick={() => handleRowClick(user)}
+                    id={`user-row-${user.uid}`}
+                  >
+                    <td>
+                      <div className="user-avatar-cell">
+                        <div className={`user-avatar ${getAvatarGradient(user.uid)}`}>
+                          {getInitials(user.name)}
+                        </div>
+                        <div>
+                          <div className="user-name">{user.name}</div>
+                          <div className="user-email-sub">UID: {user.uid.slice(0, 8)}...</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
+                    <td>
+                      <span className="role-badge user">{user.role}</span>
+                    </td>
+                    <td>
+                      <span className="status-indicator">
+                        <span className={`status-dot ${user.status}`} />
+                        {user.status}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-tertiary)', fontSize: 'var(--fs-sm)' }}>
+                      {new Date(user.createdAt).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
+                    </td>
+                    <td>
+                      <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                        <button className="row-action-btn view" onClick={(e) => handleViewClick(e, user)} title="View Details">
+                          <RiEyeLine />
+                        </button>
+                        <button className="row-action-btn delete" onClick={(e) => e.stopPropagation()} title="Delete User">
+                          <RiDeleteBinLine />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
         </div>
       </div>
 
       {/* User Detail Modal */}
-      <UserDetailModal
-        user={selectedUser}
-        show={showModal}
-        onClose={handleCloseModal}
-      />
+      <UserDetailModal user={selectedUser} show={showModal} onClose={handleCloseModal} />
     </div>
   );
 };

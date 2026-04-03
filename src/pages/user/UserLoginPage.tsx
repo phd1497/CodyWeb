@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Form, Button } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
+import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import {
   RiMailLine,
   RiLockLine,
@@ -10,15 +10,53 @@ import {
   RiShieldCheckLine,
   RiUserHeartLine,
 } from 'react-icons/ri';
+import { userSignIn } from '../../services/authService';
 import AvatarImg from '../../assets/avatar/Avatar.png';
 import '../../styles/Auth.css';
 
 const UserLoginPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const getErrorMessage = (code: string): string => {
+    switch (code) {
+      case 'auth/invalid-email':
+        return 'Invalid email address format.';
+      case 'auth/user-disabled':
+        return 'This account has been disabled.';
+      case 'auth/user-not-found':
+        return 'No account found with this email.';
+      case 'auth/wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'auth/invalid-credential':
+        return 'Invalid email or password. Please try again.';
+      case 'auth/too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
+      default:
+        return 'Something went wrong. Please try again.';
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No logic — UI template only
+    setError(null);
+
+    if (!email.trim()) { setError('Please enter your email address.'); return; }
+    if (!password.trim()) { setError('Please enter your password.'); return; }
+
+    setLoading(true);
+    try {
+      await userSignIn(email, password);
+      navigate('/user/home');
+    } catch (err: any) {
+      setError(getErrorMessage(err?.code || ''));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,7 +73,6 @@ const UserLoginPage: React.FC = () => {
           <p className="auth-deco-text">
             Sign in to access your account and explore all the features available to you.
           </p>
-
           <div className="auth-deco-features">
             <div className="auth-deco-feature">
               <div className="auth-deco-feature-icon"><RiUserHeartLine /></div>
@@ -61,6 +98,12 @@ const UserLoginPage: React.FC = () => {
             <p>Enter your credentials to access your account</p>
           </div>
 
+          {error && (
+            <Alert variant="danger" dismissible onClose={() => setError(null)} className="auth-alert">
+              {error}
+            </Alert>
+          )}
+
           <Form className="auth-form" onSubmit={handleSubmit} id="user-login-form">
             <div className="form-group">
               <Form.Label>Email Address</Form.Label>
@@ -71,6 +114,9 @@ const UserLoginPage: React.FC = () => {
                   placeholder="you@example.com"
                   className="has-icon"
                   id="user-login-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -84,6 +130,9 @@ const UserLoginPage: React.FC = () => {
                   placeholder="Enter your password"
                   className="has-icon"
                   id="user-login-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -97,16 +146,16 @@ const UserLoginPage: React.FC = () => {
             </div>
 
             <div className="auth-form-options">
-              <Form.Check
-                type="checkbox"
-                label="Remember me"
-                id="user-remember-me"
-              />
+              <Form.Check type="checkbox" label="Remember me" id="user-remember-me" />
               <a href="#forgot">Forgot password?</a>
             </div>
 
-            <Button type="submit" className="btn-primary auth-submit-btn" id="user-login-submit-btn">
-              Sign In
+            <Button type="submit" className="btn-primary auth-submit-btn" id="user-login-submit-btn" disabled={loading}>
+              {loading ? (
+                <><Spinner animation="border" size="sm" className="me-2" />Signing In...</>
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </Form>
 

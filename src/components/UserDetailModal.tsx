@@ -1,10 +1,10 @@
 import React from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import { RiMailLine, RiPhoneLine, RiMapPinLine, RiCalendarLine, RiShieldLine } from 'react-icons/ri';
-import { User } from '../types';
+import { RiMailLine, RiCalendarLine, RiShieldLine } from 'react-icons/ri';
+import type { UserProfile } from '../types';
 
 interface UserDetailModalProps {
-  user: User | null;
+  user: UserProfile | null;
   show: boolean;
   onClose: () => void;
 }
@@ -14,14 +14,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, show, onClose }
 
   const getInitials = (name: string) =>
     name.split(' ').map((n) => n[0]).join('').toUpperCase();
-
-  const getRoleBadgeClass = (role: string) => {
-    switch (role.toLowerCase()) {
-      case 'admin': return 'bg-primary';
-      case 'moderator': return 'bg-warning';
-      default: return 'bg-secondary';
-    }
-  };
 
   return (
     <Modal show={show} onHide={onClose} centered size="lg" id="user-detail-modal">
@@ -37,11 +29,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, show, onClose }
           <div className="user-detail-info">
             <h3>{user.name}</h3>
             <p>
-              <span className={`badge ${getRoleBadgeClass(user.role)}`}>{user.role}</span>
+              <span className="badge bg-secondary">{user.role}</span>
               {' '}
               <span className="status-indicator" style={{ marginLeft: '0.5rem' }}>
                 <span className={`status-dot ${user.status}`} />
-                {user.status === 'Active' ? 'Active' : 'Inactive'}
+                {user.status}
               </span>
             </p>
           </div>
@@ -52,9 +44,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, show, onClose }
           <div className="user-detail-item">
             <span className="label">
               <RiShieldLine style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-              User ID
+              User UID
             </span>
-            <span className="value">#{String(user.id).padStart(4, '0')}</span>
+            <span className="value">{user.uid}</span>
           </div>
 
           <div className="user-detail-item">
@@ -67,30 +59,14 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, show, onClose }
 
           <div className="user-detail-item">
             <span className="label">
-              <RiPhoneLine style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-              Phone
-            </span>
-            <span className="value">{user.phone}</span>
-          </div>
-
-          <div className="user-detail-item">
-            <span className="label">
               <RiCalendarLine style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
               Joined Date
             </span>
-            <span className="value">{new Date(user.joinedDate).toLocaleDateString('en-US', {
+            <span className="value">{new Date(user.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
             })}</span>
-          </div>
-
-          <div className="user-detail-item" style={{ gridColumn: '1 / -1' }}>
-            <span className="label">
-              <RiMapPinLine style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-              Address
-            </span>
-            <span className="value">{user.address}</span>
           </div>
         </div>
       </Modal.Body>

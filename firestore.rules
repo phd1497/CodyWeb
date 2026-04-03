@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection
+    match /users/{userId} {
+      // Allow authenticated users to read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Allow authenticated users to create their own profile (signup)
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Allow authenticated users to update their own profile
+      allow update: if request.auth != null && request.auth.uid == userId;
+
+      // Only admins can delete user profiles or read all users
+      allow delete: if false;
+    }
+
+    // Allow admins to list all users
+    match /users/{userId} {
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      // Allow admins to read their own profile
+      allow read: if request.auth != null && request.auth.uid == adminId;
+
+      // Allow any authenticated admin to read all admin profiles
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+
+      // Allow admins to create new admins
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+
+      // Allow admins to update admin profiles
+      allow update: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+
+      // Prevent admin deletion
+      allow delete: if false;
+    }
+  }
+}
